@@ -1,5 +1,5 @@
 import { Rigid, Position, Velocity, Size, Vector } from "./Rigid"
-
+import { InputHandler } from "./InputHandler"
 export class Game {
   width: number
   height: number
@@ -13,7 +13,7 @@ export class Game {
     this.blocks = []
     // this.blocks.push(new Block({ x: 100, y: 0 }, { x: 0, y: 0 }, { x: 30, y: 200 }))
     this.blocks.push(new Block({ x: 0, y: 200 }, { x: 0, y: 0 }, { x: 1000, y: 30 }))
-    this.blocks.push(new movingBlock({ x: 800, y: 170 }, { x: 0, y: 0 }, { x: 200, y: 30 }))
+    this.blocks.push(new movingBlock({ x: 800, y: 170 }, { x: -0.1, y: -0.1 }, { x: 200, y: 100 }))
 
     this.input = new InputHandler()
   }
@@ -22,13 +22,23 @@ export class Game {
     this.player.update(this.input)
 
     this.blocks.forEach((block) => {
+      block.update()
       if (this.player.isColliding(block) !== "no collision") {
         if (this.player.isColliding(block) === "x collision") {
-          this.player.velocity.x = 0
-          //   console.log("x collision")
-        } else if (this.player.isColliding(block) === "y collision") {
-          this.player.velocity.y = 0
-          //   console.log("y collision")
+          this.player.velocity.x = block.velocity.x
+
+          if (this.player.position.x < block.position.x) {
+            this.player.position.x = block.position.x - this.player.size.x
+          } else this.player.position.x = block.position.x + block.size.x
+          console.log("x collision")
+        }
+        if (this.player.isColliding(block) === "y collision") {
+          this.player.velocity.y = block.velocity.y
+
+          if (this.player.position.y < block.position.y) {
+            this.player.position.y = block.position.y - this.player.size.y
+          } else this.player.position.y = block.position.y + block.size.y
+          console.log("y collision")
         }
       }
     })
@@ -51,28 +61,31 @@ export class Player extends Rigid {
     super(pos, vel, size)
     this.weight = 0.2
     this.game = gm
-    this.state = new Standing()
+    this.state = new Standing(this)
     this.image = document.getElementById("shadowDog") as HTMLImageElement
   }
 
   draw(c: CanvasRenderingContext2D) {
     c.fillStyle = "#f00"
     c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y)
-    c.drawImage(
-      this.image,
-      0 * this.spriteSize.x,
-      0 * this.spriteSize.y,
-      this.spriteSize.x,
-      this.spriteSize.y,
-      this.position.x,
-      this.position.y,
-      this.size.x,
-      this.size.y
-    )
+    // c.drawImage(
+    //   this.image,
+    //   0 * this.spriteSize.x,
+    //   0 * this.spriteSize.y,
+    //   this.spriteSize.x,
+    //   this.spriteSize.y,
+    //   this.position.x,
+    //   this.position.y,
+    //   this.size.x,
+    //   this.size.y
+    // )
+
+    this.state.draw(c)
   }
   update(input: InputHandler): void {
     super.update()
     this.velocity.x = 0
+    // this.velocity.y = 0
     if (input.keys.includes("ArrowLeft")) {
       this.velocity.x += -10
     }
@@ -83,6 +96,10 @@ export class Player extends Rigid {
 
     if (input.keys.includes("ArrowUp")) {
       this.velocity.y = -2
+    }
+
+    if (input.keys.includes("ArrowDown")) {
+      this.velocity.y = 2
     }
   }
 }
@@ -108,40 +125,9 @@ export class movingBlock extends Block {
   }
 
   update(): void {
-    this.position.x += this.velocity.x
-  }
-}
-
-class InputHandler {
-  keys: string[]
-  constructor() {
-    // console.log("input handler created")
-    this.keys = []
-    window.addEventListener("keydown", (e) => {
-      if (
-        (e.key === "ArrowDown" ||
-          e.key === "ArrowUp" ||
-          e.key === "ArrowLeft" ||
-          e.key === "ArrowRight" ||
-          e.key === "Control") &&
-        !this.keys.includes(e.key)
-      ) {
-        this.keys.push(e.key)
-      }
-      console.log(this.keys)
-    })
-    window.addEventListener("keyup", (e) => {
-      if (
-        e.key === "ArrowDown" ||
-        e.key === "ArrowUp" ||
-        e.key === "ArrowLeft" ||
-        e.key === "ArrowRight" ||
-        e.key === "Control"
-      ) {
-        this.keys.splice(this.keys.indexOf(e.key), 1)
-      }
-      console.log(this.keys)
-    })
+    super.update()
+    // if (Math.random() > 0.5) this.position.x += 2 * this.velocity.x
+    // else this.position.y += 2 * this.velocity.y
   }
 }
 
@@ -150,7 +136,14 @@ class InputHandler {
 //////////////////////////////////////////////////////
 
 class State {
-  constructor(name: String) {}
+  name: String
+  player: Player
+  constructor(name: String, player: Player) {
+    this.name = name
+    this.player = player
+  }
+
+  draw(c: CanvasRenderingContext2D) {}
 }
 
 /////////////////////////////////////////////////////////
@@ -158,9 +151,30 @@ class State {
 /////////////////////////////////////////////////////////
 
 class Standing extends State {
-  constructor() {
-    super("STANDING")
+  readonly maxFrame: number = 6
+  readonly frameY: number = 0
+  frameX: number
+  constructor(player: Player) {
+    super("STANDING", player)
+    this.frameX = 0
   }
+
+  draw(c: CanvasRenderingContext2D) {
+    c.drawImage(
+      this.player.image,
+      this.frameX * this.player.spriteSize.x,
+      this.frameY * this.player.spriteSize.y,
+      this.player.spriteSize.x,
+      this.player.spriteSize.y,
+      this.player.position.x,
+      this.player.position.y,
+      this.player.size.x,
+      this.player.size.y
+    )
+
+    if (++this.frameX > this.maxFrame) this.frameX = 0
+  }
+
   //   enter() {
   //     player.vx = 0
   //     player.frameX = 0
@@ -185,73 +199,3 @@ class Standing extends State {
   //     }
   //   }
 }
-
-// window.addEventListener("keydown", function (e) {
-//   // displayState.innerText = "keydown " + e.key
-//   switch (e.key) {
-//     case "ArrowLeft":
-//       input = "PRESS left"
-//       break
-//     case "ArrowRight":
-//       input = "PRESS right"
-//       break
-//     case "ArrowUp":
-//       input = "PRESS up"
-//       break
-//     case "ArrowDown":
-//       input = "PRESS down"
-//       break
-//     case "Control":
-//       input = "PRESS attack"
-//       break
-//     case "a":
-//       input = "PRESS left"
-//       break
-//     case "d":
-//       input = "PRESS right"
-//       break
-//     case "w":
-//       input = "PRESS up"
-//       break
-//     case "s":
-//       input = "PRESS down"
-//       break
-//     case " ":
-//       input = "PRESS attack"
-//       break
-//   }
-// })
-// window.addEventListener("keyup", function (e) {
-//   // displayState.innerText = "keyup " + e.key
-//   switch (e.key) {
-//     case "ArrowLeft":
-//       input = "RELEASE left"
-//       break
-//     case "ArrowRight":
-//       input = "RELEASE right"
-//       break
-//     case "ArrowUp":
-//       input = "RELEASE up"
-//       break
-//     case "ArrowDown":
-//       input = "RELEASE down"
-//       break
-//     case "Control":
-//       input = "RELEASE attack"
-//       break
-//     case "a":
-//       input = "RELEASE left"
-//       break
-//     case "d":
-//       input = "RELEASE right"
-//       break
-//     case "w":
-//       input = "RELEASE up"
-//       break
-//     case "s":
-//       input = "RELEASE down"
-//       break
-//     case " ":
-//       input = "RELEASE attack"
-//       break
-//   }

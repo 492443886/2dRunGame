@@ -25,10 +25,13 @@ export class Rigid {
 
   isColliding(other: Rigid): "x collision" | "y collision" | "no collision" {
     const newPosition: Position = { x: this.position.x + this.velocity.x, y: this.position.y + this.velocity.y }
-
+    const newOtherPosition: Position = {
+      x: other.position.x + other.velocity.x,
+      y: other.position.y + other.velocity.y,
+    }
     if (
-      newPosition.x < other.position.x + other.size.x &&
-      newPosition.x + this.size.x > other.position.x &&
+      newPosition.x < newOtherPosition.x + other.size.x &&
+      newPosition.x + this.size.x > newOtherPosition.x &&
       this.position.y < other.position.y + other.size.y &&
       this.position.y + this.size.y > other.position.y
     ) {
@@ -36,8 +39,8 @@ export class Rigid {
     } else if (
       this.position.x < other.position.x + other.size.x &&
       this.position.x + this.size.x > other.position.x &&
-      newPosition.y < other.position.y + other.size.y &&
-      newPosition.y + this.size.y > other.position.y
+      newPosition.y < newOtherPosition.y + other.size.y &&
+      newPosition.y + this.size.y > newOtherPosition.y
     ) {
       return "y collision"
     }
