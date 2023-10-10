@@ -1,12 +1,15 @@
-import { Rigid, Position, Velocity, Size, Vector } from "./Rigid"
+import { Rigid, Position, Velocity, Size } from "./Rigid"
 import { InputHandler } from "./InputHandler"
+import { Player } from "./Player.ts"
 export class Game {
   width: number
   height: number
   player: Player
   blocks: Block[]
   input: InputHandler
+  deltaTime: number
   constructor(width: number, height: number) {
+    this.deltaTime = 0
     this.width = width
     this.height = height
     this.player = new Player(this, { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 50, y: 45.6 })
@@ -19,7 +22,8 @@ export class Game {
   }
 
   update() {
-    this.player.update(this.input)
+    this.player.update(this.input.keys)
+    this.player.islanded = false
 
     this.blocks.forEach((block) => {
       block.update()
@@ -29,16 +33,17 @@ export class Game {
 
           if (this.player.position.x < block.position.x) {
             this.player.position.x = block.position.x - this.player.size.x
-          } else this.player.position.x = block.position.x + block.size.x
-          console.log("x collision")
+          } else this.player.position.x = block.position.x + block.size.x + 1
+          // console.log("x collision")
         }
         if (this.player.isColliding(block) === "y collision") {
           this.player.velocity.y = block.velocity.y
 
           if (this.player.position.y < block.position.y) {
+            this.player.islanded = true
             this.player.position.y = block.position.y - this.player.size.y
-          } else this.player.position.y = block.position.y + block.size.y
-          console.log("y collision")
+          } else this.player.position.y = block.position.y + block.size.y + 1
+          // console.log("y collision")
         }
       }
     })
@@ -49,58 +54,6 @@ export class Game {
     this.blocks.forEach((block) => {
       block.draw(c)
     })
-  }
-}
-
-export class Player extends Rigid {
-  game: Game
-  state: State
-  image: HTMLImageElement
-  readonly spriteSize: Vector = { x: 200, y: 181.83 }
-  constructor(gm: Game, pos: Position, vel: Velocity, size: Size) {
-    super(pos, vel, size)
-    this.weight = 0.2
-    this.game = gm
-    this.state = new Standing(this)
-    this.image = document.getElementById("shadowDog") as HTMLImageElement
-  }
-
-  draw(c: CanvasRenderingContext2D) {
-    c.fillStyle = "#f00"
-    c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y)
-    // c.drawImage(
-    //   this.image,
-    //   0 * this.spriteSize.x,
-    //   0 * this.spriteSize.y,
-    //   this.spriteSize.x,
-    //   this.spriteSize.y,
-    //   this.position.x,
-    //   this.position.y,
-    //   this.size.x,
-    //   this.size.y
-    // )
-
-    this.state.draw(c)
-  }
-  update(input: InputHandler): void {
-    super.update()
-    this.velocity.x = 0
-    // this.velocity.y = 0
-    if (input.keys.includes("ArrowLeft")) {
-      this.velocity.x += -10
-    }
-
-    if (input.keys.includes("ArrowRight")) {
-      this.velocity.x += 10
-    }
-
-    if (input.keys.includes("ArrowUp")) {
-      this.velocity.y = -2
-    }
-
-    if (input.keys.includes("ArrowDown")) {
-      this.velocity.y = 2
-    }
   }
 }
 
@@ -129,73 +82,4 @@ export class movingBlock extends Block {
     // if (Math.random() > 0.5) this.position.x += 2 * this.velocity.x
     // else this.position.y += 2 * this.velocity.y
   }
-}
-
-//////////////////////////////////////////////////////
-// STATE CLASS ///////////////////////////////////////
-//////////////////////////////////////////////////////
-
-class State {
-  name: String
-  player: Player
-  constructor(name: String, player: Player) {
-    this.name = name
-    this.player = player
-  }
-
-  draw(c: CanvasRenderingContext2D) {}
-}
-
-/////////////////////////////////////////////////////////
-// STANDING STATE ///////////////////////////////////////
-/////////////////////////////////////////////////////////
-
-class Standing extends State {
-  readonly maxFrame: number = 6
-  readonly frameY: number = 0
-  frameX: number
-  constructor(player: Player) {
-    super("STANDING", player)
-    this.frameX = 0
-  }
-
-  draw(c: CanvasRenderingContext2D) {
-    c.drawImage(
-      this.player.image,
-      this.frameX * this.player.spriteSize.x,
-      this.frameY * this.player.spriteSize.y,
-      this.player.spriteSize.x,
-      this.player.spriteSize.y,
-      this.player.position.x,
-      this.player.position.y,
-      this.player.size.x,
-      this.player.size.y
-    )
-
-    if (++this.frameX > this.maxFrame) this.frameX = 0
-  }
-
-  //   enter() {
-  //     player.vx = 0
-  //     player.frameX = 0
-  //     player.frameY = 0
-  //     player.maxFrame = 6
-  //   }
-  //   handleInput(input) {
-  //     if (input === "PRESS right") {
-  //       player.vx = player.speed
-  //       player.setState(1) // running
-  //     } else if (input === "PRESS left") {
-  //       player.vx = -player.speed
-  //       player.setState(1) // running
-  //     } else if (input === "PRESS up") {
-  //       if (player.onGround()) {
-  //         player.setState(2) // jumping
-  //       }
-  //     } else if (input === "PRESS down") {
-  //       player.setState(3) // sitting
-  //     } else if (input === "PRESS attack") {
-  //       player.setState(4) // rolling
-  //     }
-  //   }
 }

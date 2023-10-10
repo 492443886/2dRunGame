@@ -7,11 +7,24 @@ canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 
 const game = new Game(canvas.width, canvas.height)
+// const fps: number = 60
+let lastTime: number = 0
+let timeTemp: number = 0
 
-const animation = () => {
-  requestAnimationFrame(animation)
+const animate = (timeStamp: number) => {
+  const deltaTime = timeStamp - lastTime
+  lastTime = timeStamp
+  timeTemp += deltaTime
+  requestAnimationFrame(animate)
+  // if (timeTemp < 1000 / 40) return
+  // else {
+  //   timeTemp = 0
+  //   // timeTemp += deltaTime
+  // }
+
+  game.deltaTime = deltaTime
   game.update()
   game.draw(c)
 }
 
-animation()
+animate(0)
